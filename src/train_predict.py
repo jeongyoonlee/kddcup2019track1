@@ -35,14 +35,13 @@ def submit_result(submit, result, score):
                                'datetime': [now_time],
                                'score': [score]})
 
-    metric.to_csv(config.metric_file, index=False)
+    metric.round(6).to_csv(config.metric_file, index=False)
 
 
 def train_lgb(trn, y, tst):
     cv = StratifiedKFold(n_splits=config.n_fold, shuffle=True, random_state=config.seed)
     params = {
         'objective': 'multiclass',
-        'metrics': 'multiclass',
         'learning_rate': 0.05,
         'num_leaves': 31,
         'lambda_l1': 0.01,
