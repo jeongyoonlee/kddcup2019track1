@@ -105,3 +105,6 @@ venv.bak/
 
 # CSV data
 *.csv
+.vscode/
+build
+input
