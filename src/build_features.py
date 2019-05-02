@@ -274,6 +274,9 @@ def gen_od_feat(data):
     print(feat.shape)
     print(feat.columns)
     data = data.merge(feat, how='left', on='sid')
+    
+    click_cols = [c for c in feat.columns if c.endswith('click')]
+    data.drop(click_cols, axis=1, inplace=True)
     return data
         
 def gen_od_cluster_feat(data):
@@ -284,9 +287,9 @@ def gen_od_cluster_feat(data):
     
     f = feat.copy()
     feat = sid.merge(feat, how='left', left_on='o', right_on='od').drop(['od','o'], axis=1)
-    feat.rename(columns={'cluster': 'o_cluster'})
+    feat.rename(columns={'cluster': 'o_cluster'}, inplace=True)
     feat = feat.merge(f, how='left', left_on='d', right_on='od').drop(['od','d'], axis=1)
-    feat.rename(columns={'cluster': 'd_cluster'})
+    feat.rename(columns={'cluster': 'd_cluster'}, inplace=True)
     
     data = data.merge(feat, how='left', on='sid')
     return data
@@ -326,7 +329,7 @@ def get_train_test_feas_data():
     #data = gen_sid_feat(data) # 0.6752915844109314 (not work)
     data = gen_od_feat(data) #  without click count: 0.6780576865566392; with click count: 0.6795810670221226
     data = gen_od_cluster_feat(data) # 0.6796523605372234
-    data = gen_od_eq_feat(data)
+    #data = gen_od_eq_feat(data)
     train_x, train_y, test_x, submit = split_train_test(data)
     return train_x, train_y, test_x, submit
 
