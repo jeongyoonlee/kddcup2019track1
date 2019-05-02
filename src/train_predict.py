@@ -13,7 +13,7 @@ from feature import get_train_test_features
 
 def eval_f(y_pred, train_data):
     y_true = train_data.label
-    y_pred = y_pred.reshape((12, -1)).T
+    y_pred = y_pred.reshape((config.n_class, -1)).T
     y_pred = np.argmax(y_pred, axis=1)
     score = f1_score(y_true, y_pred, average='weighted')
     return 'weighted-f1-score', score, True
@@ -47,7 +47,7 @@ def train_lgb(trn, y, tst):
         'num_leaves': 31,
         'lambda_l1': 0.01,
         'lambda_l2': 10,
-        'num_class': 12,
+        'num_class': config.n_class,
         'seed': config.seed,
         'feature_fraction': 0.8,
         'bagging_fraction': 0.8,
@@ -57,8 +57,8 @@ def train_lgb(trn, y, tst):
                 'min_price_mode', 'max_eta_mode', 'min_eta_mode',
                 'first_mode', 'weekday', 'hour']
     p = np.zeros_like(y)
-    prob = np.zeros_like(y, dtype=float)
-    prob_tst = np.zeros((tst.shape[0],))
+    prob = np.zeros((trn.shape[0], config.n_class), dtype=float)
+    prob_tst = np.zeros((tst.shape[0], config.n_class))
     for k, (i_trn, i_val) in enumerate(cv.split(trn, y)):
         X_trn, y_trn, X_val, y_val = trn.iloc[i_trn], y[i_trn], trn.iloc[i_val], y[i_val]
         lgb_trn = lgb.Dataset(X_trn, y_trn, categorical_feature=cat_cols)

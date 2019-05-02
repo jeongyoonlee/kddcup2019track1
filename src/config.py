@@ -24,7 +24,8 @@ class Config(object):
                  build_dir=os.path.join(root_dir, 'build'),
                  phase=1,
                  seed=2019,
-                 n_fold=5):
+                 n_fold=5,
+                 n_class=12):
 
         #----------------------------------------------------------------------
         # Input data folder and files
@@ -70,6 +71,7 @@ class Config(object):
         #----------------------------------------------------------------------
         self.seed = seed
         self.n_fold = n_fold
+        self.n_class = n_class
         self.feature_name = None
         self.algo_name = None
         self.model_name = None
