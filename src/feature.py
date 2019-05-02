@@ -311,7 +311,6 @@ def gen_pid_feat(data):
     data = data.merge(feat, how='left', on='pid')
     return data
 
-
 def gen_od_feat(data):
     feat = pd.read_csv(config.od_feature_file)
     tr_sid = pd.read_csv(config.train_query_file, usecols=['sid','o','d'])
@@ -322,6 +321,8 @@ def gen_od_feat(data):
     logger.info('feature shape={}'.format(feat.shape))
     logger.info('feature columns={}'.format(feat.columns))
     data = data.merge(feat, how='left', on='sid')
+    click_cols = [c for c in feat.columns if c.endswith('click')]
+    data.drop(click_cols, axis=1, inplace=True)
     return data
 
 def gen_od_cluster_feat(data):
@@ -332,9 +333,9 @@ def gen_od_cluster_feat(data):
 
     f = feat.copy()
     feat = sid.merge(feat, how='left', left_on='o', right_on='od').drop(['od','o'], axis=1)
-    feat.rename(columns={'cluster': 'o_cluster'})
+    feat.rename(columns={'cluster': 'o_cluster'}, inplace=True)
     feat = feat.merge(f, how='left', left_on='d', right_on='od').drop(['od','d'], axis=1)
-    feat.rename(columns={'cluster': 'd_cluster'})
+    feat.rename(columns={'cluster': 'd_cluster'}, inplace=True)
 
     data = data.merge(feat, how='left', on='sid')
     return data
