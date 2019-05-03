@@ -347,6 +347,16 @@ def gen_od_eq_feat(data):
     return data
 
 
+def gen_od_mode_cnt_feat(data):
+    feat = pd.read_csv(config.od_mode_cnt_feature_file)
+    tr_sid = pd.read_csv(config.train_query_file, usecols=['sid','o','d'])
+    te_sid = pd.read_csv(config.test_query_file, usecols=['sid','o','d'])
+    sid = pd.concat((tr_sid, te_sid))
+
+    feat = sid.merge(feat, how='left', on=['o','d']).drop(['o','d'], axis=1)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
 def generate_f1(df):
     df = gen_od_feas(df)
     df = gen_plan_feas(df)
@@ -365,6 +375,25 @@ def generate_f1(df):
     return trn, tst
 
 
+def generate_f2(df):
+    df = gen_od_feas(df)
+    df = gen_plan_feas(df)
+    df = gen_profile_feas(df)
+    df = gen_ratio_feas(df)
+    df = gen_fly_dist_feas(df)
+    df = gen_aggregate_profile_feas(df) # 0.6759966661470926
+    df = gen_pid_feat(df) # 0.6762996872664375
+    df = gen_od_feat(df) #  without click count: 0.6780576865566392; with click count: 0.6795810670221226
+    df = gen_od_cluster_feat(df) # 0.6796523605372234
+    df = gen_od_eq_feat(df)
+    df = gen_od_mode_cnt_feat(df)
+
+    trn = df[df['click_mode'] != -1]
+    tst = df[df['click_mode'] == -1]
+
+    return trn, tst
+
+
 def get_train_test_features():
     config.set_feature_name('f1')
     if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
@@ -374,6 +403,30 @@ def get_train_test_features():
     else:
         df = merge_raw_data()
         logger.info('generateing feature f1.')
+        trn, tst = generate_f1(df)
+
+        logger.info('saving the training and test f1 features.')
+        trn.to_csv(config.train_feature_file, index=False)
+        tst.to_csv(config.test_feature_file, index=False)
+
+    y = trn['click_mode'].values
+    sub = tst[['sid']].copy()
+
+    trn.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+    tst.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+
+    return trn, y, tst, sub
+
+
+def get_train_test_features2():
+    config.set_feature_name('f2')
+    if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(config.train_feature_file)
+        tst = pd.read_csv(config.test_feature_file)
+    else:
+        df = merge_raw_data()
+        logger.info('generateing feature f2.')
         trn, tst = generate_f1(df)
 
         logger.info('saving the training and test f1 features.')

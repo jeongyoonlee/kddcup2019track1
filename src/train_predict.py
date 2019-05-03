@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score
 from time import gmtime, strftime
 
 from config import logger, config
-from feature import get_train_test_features
+from feature import get_train_test_features, get_train_test_features2
 
 
 def eval_f(y_pred, train_data):
@@ -19,11 +19,15 @@ def eval_f(y_pred, train_data):
     return 'weighted-f1-score', score, True
 
 
-def submit_result(submit, result, score):
+def submit_result(submit, result, trn_result, score):
     now_time = strftime("%Y-%m-%d-%H-%M-%S", gmtime())
 
     submit['recommend_mode'] = result
     submit.to_csv(config.submission_file, index=False)
+    
+    if trn_result is not None:
+        submit['recommend_mode'] = trn_result
+        submit.to_csv(config.trn_submission_file, index=False)
 
     if os.path.exists(config.metric_file):
         metric = pd.read_csv(config.metric_file)
@@ -58,6 +62,7 @@ def train_lgb(trn, y, tst):
     p = np.zeros_like(y)
     prob = np.zeros((trn.shape[0], config.n_class), dtype=float)
     prob_tst = np.zeros((tst.shape[0], config.n_class))
+    best_iteration = 375
     for k, (i_trn, i_val) in enumerate(cv.split(trn, y)):
         X_trn, y_trn, X_val, y_val = trn.iloc[i_trn], y[i_trn], trn.iloc[i_val], y[i_val]
         lgb_trn = lgb.Dataset(X_trn, y_trn, categorical_feature=cat_cols)
@@ -80,16 +85,29 @@ def train_lgb(trn, y, tst):
         imp = pd.DataFrame({'feature_importances': feature_importances, 'feature_names':feature_names})
         imp = imp.sort_values('feature_importances', ascending=False).drop_duplicates()
         print("[+] All feature importances", list(imp.values))
-
+        best_iteration = clf.best_iteration
+    
+    lgb_trn = lgb.Dataset(trn, y, categorical_feature=cat_cols)
+    clf = lgb.train(params, lgb_trn,
+                    valid_sets=[lgb_trn],
+                    early_stopping_rounds=50,
+                    num_boost_round=best_iteration,
+                    verbose_eval=50,
+                    feval=eval_f)
+    
+    prob_trn_tst = clf.predict(tst)
+    
     imp.to_csv(config.feature_imp_file, index=False)
     score = f1_score(y, p, average='weighted')
     print('[+] CV f1-score: ', score)
     p_tst = np.argmax(prob_tst, axis=1)
-
+    p_trn_tst = np.argmax(prob_trn_tst, axis=1)
+    
     np.savetxt(config.predict_val_file, prob, delimiter=',')
     np.savetxt(config.predict_tst_file, prob_tst, delimiter=',')
+    np.savetxt(config.predict_trn_tst_file, prob_trn_tst, delimiter=',')
 
-    return p_tst, score
+    return p_tst, p_trn_tst, score
 
 
 if __name__ == '__main__':
@@ -97,6 +115,6 @@ if __name__ == '__main__':
     trn, y, tst, sub = get_train_test_features()
 
     config.set_algo_name('lgb1')
-    p_tst, score = train_lgb(trn, y, tst)
+    p_tst, p_trn_tst, score = train_lgb(trn, y, tst)
 
-    submit_result(sub, p_tst, score)
+    submit_result(sub, p_tst, p_trn_tst, score)

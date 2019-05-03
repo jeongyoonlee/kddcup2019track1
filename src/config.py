@@ -65,6 +65,8 @@ class Config(object):
         self.pid_feature_file = os.path.join(self.feature_dir, 'pid_features.csv')
         self.od_feature_file = os.path.join(self.feature_dir, 'od_features.csv')
         self.od_cluster_feature_file = os.path.join(self.feature_dir, 'od_cluster_features.csv')
+        self.od_mode_cnt_feature_file = os.path.join(self.feature_dir, 'od_mode_cnt_features.csv')
+        
 
         #----------------------------------------------------------------------
         # Member variables
@@ -91,7 +93,11 @@ class Config(object):
         self.model_file = os.path.join(self.model_dir, '{}.mdl'.format(self.model_name))
         self.predict_val_file = os.path.join(self.val_dir, '{}.val.csv'.format(self.model_name))
         self.predict_tst_file = os.path.join(self.tst_dir, '{}.tst.csv'.format(self.model_name))
+        self.predict_trn_tst_file = os.path.join(self.tst_dir, '{}.trn_tst.csv'.format(self.model_name))
         self.submission_file = os.path.join(self.sub_dir, '{}.sub.csv'.format(self.model_name))
+        self.trn_submission_file = os.path.join(self.sub_dir, '{}.trn.sub.csv'.format(self.model_name))
+
+
 
 
 config = Config()
