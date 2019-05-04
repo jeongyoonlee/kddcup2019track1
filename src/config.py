@@ -3,7 +3,7 @@ import os
 import sys
 
 
-team_name = 'CaptainEnsembl'
+team_name = 'AvengersEnsmbl'
 
 logger = logging.getLogger(name=team_name)
 logger.setLevel(logging.DEBUG)
@@ -38,6 +38,8 @@ class Config(object):
         self.train_query_file = os.path.join(self.data_dir, 'train_queries.csv')
         self.test_plan_file = os.path.join(self.data_dir, 'test_plans.csv')
         self.test_query_file = os.path.join(self.data_dir, 'test_queries.csv')
+        self.cv_id_file = os.path.join(self.data_dir, 'cv_idx.txt')
+        
 
         #----------------------------------------------------------------------
         # Output folders

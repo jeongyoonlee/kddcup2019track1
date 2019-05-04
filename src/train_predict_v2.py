@@ -43,7 +43,7 @@ def submit_result(submit, result, trn_result, score):
 
 
 def train_lgb(trn, y, tst):
-    cv = StratifiedKFold(n_splits=config.n_fold, shuffle=True, random_state=config.seed)
+    cv_idx = np.loadtxt(config.cv_id_file)
     params = {'objective': 'multiclass', 
               'num_class': 12, 
               'seed': 2019, 
@@ -55,7 +55,8 @@ def train_lgb(trn, y, tst):
               'lambda_l2': 13.207486031673932, 
               'feature_fraction': 0.5991759690382027, 
               'bagging_fraction': 0.9806964428838549, 
-              'bagging_freq': 3}
+              'bagging_freq': 3,
+              'verbose': -1}
 
     cat_cols = ['max_dist_mode', 'min_dist_mode', 'max_price_mode',
                 'min_price_mode', 'max_eta_mode', 'min_eta_mode',
@@ -64,7 +65,11 @@ def train_lgb(trn, y, tst):
     prob = np.zeros((trn.shape[0], config.n_class), dtype=float)
     prob_tst = np.zeros((tst.shape[0], config.n_class))
     best_iteration = 519
-    for k, (i_trn, i_val) in enumerate(cv.split(trn, y)):
+    for k, _id in enumerate(range(5)):
+        i_trn = (cv_idx != _id)
+        i_val = (cv_idx == _id)
+        print(' [*] Train id: ', i_trn)
+        print(' [*] Valid id: ', i_val)
         X_trn, y_trn, X_val, y_val = trn.iloc[i_trn], y[i_trn], trn.iloc[i_val], y[i_val]
         lgb_trn = lgb.Dataset(X_trn, y_trn, categorical_feature=cat_cols)
         lgb_val = lgb.Dataset(X_val, y_val, categorical_feature=cat_cols)
