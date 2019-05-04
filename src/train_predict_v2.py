@@ -44,39 +44,39 @@ def submit_result(submit, result, trn_result, score):
 
 def train_lgb(trn, y, tst):
     cv = StratifiedKFold(n_splits=config.n_fold, shuffle=True, random_state=config.seed)
-    params = {
-        'objective': 'multiclass',
-        'learning_rate': 0.05,
-        'num_leaves': 31,
-        'lambda_l1': 0.01,
-        'lambda_l2': 10,
-        'num_class': config.n_class,
-        'seed': config.seed,
-        'feature_fraction': 0.8,
-        'bagging_fraction': 0.8,
-        'bagging_freq': 4,
-    }
+    params = {'objective': 'multiclass', 
+              'num_class': 12, 
+              'seed': 2019, 
+              'learning_rate': 0.05, 
+              'num_threads': 4, 
+              'num_leaves': 39, 
+              'max_depth': 7, 
+              'lambda_l1': 3.189387005111133, 
+              'lambda_l2': 13.207486031673932, 
+              'feature_fraction': 0.5991759690382027, 
+              'bagging_fraction': 0.9806964428838549, 
+              'bagging_freq': 3}
+
     cat_cols = ['max_dist_mode', 'min_dist_mode', 'max_price_mode',
                 'min_price_mode', 'max_eta_mode', 'min_eta_mode',
                 'first_mode', 'weekday', 'hour']
     p = np.zeros_like(y)
     prob = np.zeros((trn.shape[0], config.n_class), dtype=float)
     prob_tst = np.zeros((tst.shape[0], config.n_class))
-    best_iteration = 375
+    best_iteration = 519
     for k, (i_trn, i_val) in enumerate(cv.split(trn, y)):
         X_trn, y_trn, X_val, y_val = trn.iloc[i_trn], y[i_trn], trn.iloc[i_val], y[i_val]
         lgb_trn = lgb.Dataset(X_trn, y_trn, categorical_feature=cat_cols)
         lgb_val = lgb.Dataset(X_val, y_val, categorical_feature=cat_cols)
         clf = lgb.train(params, lgb_trn,
                         valid_sets=[lgb_trn, lgb_val],
-                        early_stopping_rounds=50,
-                        num_boost_round=40000,
+                        num_boost_round=best_iteration,
                         verbose_eval=50,
                         feval=eval_f)
-        prob[i_val,:] = clf.predict(X_val, num_iteration=clf.best_iteration)
+        prob[i_val,:] = clf.predict(X_val)
         p[i_val] = np.argmax(prob[i_val], axis=1)
         score = f1_score(y_val, p[i_val], average='weighted')
-        prob_tst += clf.predict(tst, num_iteration=clf.best_iteration) / config.n_fold
+        prob_tst += clf.predict(tst) / config.n_fold
         print('[+] fold #{}: {}'.format(k, score))
         feature_importances = list(clf.feature_importance())
         # print('Feature importances:', feature_importances)
@@ -85,12 +85,10 @@ def train_lgb(trn, y, tst):
         imp = pd.DataFrame({'feature_importances': feature_importances, 'feature_names':feature_names})
         imp = imp.sort_values('feature_importances', ascending=False).drop_duplicates()
         print("[+] All feature importances", list(imp.values))
-        best_iteration = clf.best_iteration
     
     lgb_trn = lgb.Dataset(trn, y, categorical_feature=cat_cols)
     clf = lgb.train(params, lgb_trn,
                     valid_sets=[lgb_trn],
-                    early_stopping_rounds=50,
                     num_boost_round=best_iteration,
                     verbose_eval=50,
                     feval=eval_f)
@@ -114,7 +112,7 @@ if __name__ == '__main__':
 
     trn, y, tst, sub = get_train_test_features()
 
-    config.set_algo_name('lgb1')
+    config.set_algo_name('lgb2')
     p_tst, p_trn_tst, score = train_lgb(trn, y, tst)
 
     submit_result(sub, p_tst, p_trn_tst, score)
