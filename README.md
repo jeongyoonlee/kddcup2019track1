@@ -1,5 +1,8 @@
 # KDD Cup 2019 Track 1
 
+## Information
+* [Website](https://dianshi.baidu.com/competition/29/rule)
+
 ## Prepare data
 * Create input folder and copy training and testing data into the folder
 * Create folder submit
