@@ -420,49 +420,51 @@ def gen_plan_ratio_feat(data):
     return data
 
 def generate_f1(df):
-    df = gen_od_feas(df)
-    df = gen_plan_feas(df)
-    df = gen_profile_feas(df)
-    df = gen_ratio_feas(df)
-    df = gen_fly_dist_feas(df)
-    df = gen_aggregate_profile_feas(df) # 0.6759966661470926
-    df = gen_pid_feat(df) # 0.6762996872664375
-    df = gen_od_feat(df) #  without click count: 0.6780576865566392; with click count: 0.6795810670221226
-    df = gen_od_cluster_feat(df) # 0.6796523605372234
-    df = gen_od_eq_feat(df)
-
-    trn = df[df['click_mode'] != -1]
-    tst = df[df['click_mode'] == -1]
-
-    return trn, tst
-
-def generate_f2(df):
     trn_feat_name, tst_feat_name = config.get_feature_name('f1')
     if os.path.exists(trn_feat_name) and os.path.exists(tst_feat_name):
         logger.info('loading the training and test features from files.')
         trn = pd.read_csv(trn_feat_name)
         tst = pd.read_csv(tst_feat_name)
     else:
+        df = gen_od_feas(df)
+        df = gen_plan_feas(df)
+        df = gen_profile_feas(df)
+        df = gen_ratio_feas(df)
+        df = gen_fly_dist_feas(df)
+        df = gen_aggregate_profile_feas(df) # 0.6759966661470926
+        df = gen_pid_feat(df) # 0.6762996872664375
+        df = gen_od_feat(df) #  without click count: 0.6780576865566392; with click count: 0.6795810670221226
+        df = gen_od_cluster_feat(df) # 0.6796523605372234
+        df = gen_od_eq_feat(df)
+
+        trn = df[df['click_mode'] != -1]
+        tst = df[df['click_mode'] == -1]
+
+    return trn, tst
+
+def generate_f2(df):
+    trn_feat_name, tst_feat_name = config.get_feature_name('f2')
+    if os.path.exists(trn_feat_name) and os.path.exists(tst_feat_name):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(trn_feat_name)
+        tst = pd.read_csv(tst_feat_name)
+    else:
         trn, tst = generate_f1(df)
-        trn.to_csv(trn_feat_name, index=False)
-        tst.to_csv(tst_feat_name, index=False)
+        df = pd.concat((trn, tst))
 
-    
-    df = pd.concat((trn, tst))
+        df = gen_od_mode_cnt_feat(df) # [+] fold #0: 0.6835031183515229
+        df = gen_weekday_hour_cnt_feat(df)
+        df = gen_od_plan_agg_feat(df)
+        df = gen_mode_feat(df)
 
-    df = gen_od_mode_cnt_feat(df) # [+] fold #0: 0.6835031183515229
-    df = gen_weekday_hour_cnt_feat(df)
-    df = gen_od_plan_agg_feat(df)
-    df = gen_mode_feat(df)
+        #df = gen_mode_stats_feat(df)
+        ## df = gen_weather_feat(df)
+        #df = gen_daily_plan_feat(df)
+        #df = gen_od_pid_count_feat(df)
+        ## df = gen_plan_ratio_feat(df)
 
-    #df = gen_mode_stats_feat(df)
-    ## df = gen_weather_feat(df)
-    #df = gen_daily_plan_feat(df)
-    #df = gen_od_pid_count_feat(df)
-    ## df = gen_plan_ratio_feat(df)
-
-    trn = df[df['click_mode'] != -1]
-    tst = df[df['click_mode'] == -1]
+        trn = df[df['click_mode'] != -1]
+        tst = df[df['click_mode'] == -1]
 
     return trn, tst
 
@@ -474,26 +476,18 @@ def generate_f3(df):
         trn = pd.read_csv(trn_feat_name)
         tst = pd.read_csv(tst_feat_name)
     else:
-        trn, tst = generate_f1(df)
-        trn.to_csv(trn_feat_name, index=False)
-        tst.to_csv(tst_feat_name, index=False)
+        trn, tst = generate_f2(df)
+        df = pd.concat((trn, tst))
 
-    
-    df = pd.concat((trn, tst))
 
-    df = gen_od_mode_cnt_feat(df) # [+] fold #0: 0.6835031183515229
-    df = gen_weekday_hour_cnt_feat(df)
-    df = gen_od_plan_agg_feat(df)
-    df = gen_mode_feat(df)
+        #df = gen_mode_stats_feat(df)
+        ## df = gen_weather_feat(df)
+        #df = gen_daily_plan_feat(df)
+        #df = gen_od_pid_count_feat(df)
+        ## df = gen_plan_ratio_feat(df)
 
-    #df = gen_mode_stats_feat(df)
-    ## df = gen_weather_feat(df)
-    #df = gen_daily_plan_feat(df)
-    #df = gen_od_pid_count_feat(df)
-    ## df = gen_plan_ratio_feat(df)
-
-    trn = df[df['click_mode'] != -1]
-    tst = df[df['click_mode'] == -1]
+        trn = df[df['click_mode'] != -1]
+        tst = df[df['click_mode'] == -1]
 
     return trn, tst
 
@@ -543,7 +537,6 @@ def get_train_test_features2():
 
     return trn, y, tst, sub
 
-
 def get_train_test_features2a():
     config.set_feature_name('f2')
     if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
@@ -587,7 +580,7 @@ def get_train_test_features3():
         tst = pd.read_csv(config.test_feature_file)
     else:
         df = merge_raw_data()
-        logger.info('generateing feature f3.')
+        logger.info('generating feature f3.')
         trn, tst = generate_f3(df)
 
         logger.info('saving the training and test f3 features.')

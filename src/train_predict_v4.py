@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score, classification_report
 from time import gmtime, strftime
 
 from config import logger, config
-from feature import get_train_test_features, get_train_test_features2
+from feature import get_train_test_features, get_train_test_features2, get_train_test_features3
 
 
 import numpy as np
@@ -90,7 +90,6 @@ def submit_result(submit, result, trn_result, score):
 
 
 def train_lgb(trn, y, tst=None):
-    cv_idx = np.loadtxt(config.cv_id_file)
     clf = lgb.LGBMClassifier(boosting_type="gbdt",
                                num_leaves=80,
                                reg_alpha=10,
@@ -121,10 +120,9 @@ def train_lgb(trn, y, tst=None):
                 'min_price_mode', 'max_eta_mode', 'min_eta_mode',
                 'first_mode', 'weekday', 'hour']
 
-    cat_cols = ['pid', 'max_dist_mode', 'min_dist_mode', 'max_price_mode',
-                'min_price_mode', 'max_eta_mode', 'min_eta_mode', 'first_mode', 'day_of_week', 'req_hour', 'weather']
-
-
+    #cat_cols = ['pid', 'max_dist_mode', 'min_dist_mode', 'max_price_mode',
+    #            'min_price_mode', 'max_eta_mode', 'min_eta_mode', 'first_mode', 'weekday', 'hour', 
+    #            ]
                 
     X_trn, y_trn, X_val, y_val = trn.iloc[:-63388,:], y[:-63388], trn.iloc[-63388:,], y[-63388:]
     
@@ -144,15 +142,15 @@ def train_lgb(trn, y, tst=None):
 
 if __name__ == '__main__':
 
-    #trn, y, tst, sub = get_train_test_features2()
-    df = pd.read_csv('./build/feature/baseline.csv')
-    df = df[~pd.isnull(df['click_mode'])]
+    trn, y, tst, sub = get_train_test_features2()
+    #df = pd.read_csv(config.train_feature_file)
+    #df = df[~pd.isnull(df['click_mode'])]
 
-    trn = df.drop(['sid','req_time', 'click_mode'], axis=1)
-    y = df['click_mode'].values
+    #trn = df.drop(['sid','req_time', 'click_mode'], axis=1)
+    #y = df['click_mode'].values
 
-    #config.set_algo_name('lgb4')
-    #config.set_feature_name('f2') # f2 = 0.67969, 0.680544, 0.680743
+    config.set_algo_name('lgb4')
+    config.set_feature_name('f2') # f2 = 
     train_lgb(trn, y)
 
     
