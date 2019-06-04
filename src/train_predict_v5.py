@@ -8,7 +8,8 @@ from sklearn.metrics import f1_score
 from time import gmtime, strftime
 
 from config import logger, config
-from feature import get_train_test_features, get_train_test_features2
+from feature import get_train_test_features, get_train_test_features2, get_train_test_features4, get_train_test_features0
+
 
 def eval_f(y_pred, train_data):
     y_true = train_data.label
@@ -31,9 +32,9 @@ def submit_result(submit, result, trn_result, score):
     if os.path.exists(config.metric_file):
         metric = pd.read_csv(config.metric_file)
         metric = metric.append({'model': config.model_name,
-                                'feature': config.feature_name,
-                                'datetime': now_time,
-                                'score': score}, ignore_index=True)
+                                 'feature': config.feature_name,
+                                 'datetime': now_time,
+                                 'score': score}, ignore_index=True)
     else:
         metric = pd.DataFrame({'model': [config.model_name], 
                                'feature': config.feature_name,
@@ -49,7 +50,7 @@ def train_lgb(trn, y, tst):
               'num_class': 12, 
               'seed': 2019, 
               'learning_rate': 0.05, 
-              'num_threads': 8, 
+              'num_threads': 4, 
               'num_leaves': 39, 
               'max_depth': 7, 
               'lambda_l1': 3.189387005111133, 
@@ -59,14 +60,32 @@ def train_lgb(trn, y, tst):
               'bagging_freq': 3,
               'verbose': -1}
 
+    params = {'objective': 'multiclass', 
+              'num_class': 12, 
+              'seed': 2019, 
+              'learning_rate': 0.05, 
+              'num_threads': 8, 
+              'num_leaves': 44, 
+              'max_depth': 11, 
+              'lambda_l1': 4.717461111446621, 
+              'lambda_l2': 10.550885244591129, 
+              'feature_fraction': 0.8235898660709667, 
+              'bagging_fraction': 0.9018152298305773, 
+              'bagging_freq': 3,
+              'verbose': -1}
+    
     cat_cols = ['max_dist_mode', 'min_dist_mode', 'max_price_mode',
                 'min_price_mode', 'max_eta_mode', 'min_eta_mode',
                 'first_mode', 'weekday', 'hour']
 
+    cat_cols = ['pid', 'max_dist_mode', 'min_dist_mode', 'max_price_mode',
+                'min_price_mode', 'max_eta_mode', 'min_eta_mode', 'first_mode', 'day_of_week', 'req_hour', 'weather']
+
+
     p = np.zeros_like(y)
     prob = np.zeros((trn.shape[0], config.n_class), dtype=float)
     prob_tst = np.zeros((tst.shape[0], config.n_class))
-    best_iteration = 519
+    best_iteration = 250
     for k, _id in enumerate(range(5)):
         i_trn = (cv_idx != _id)
         i_val = (cv_idx == _id)
@@ -117,10 +136,10 @@ def train_lgb(trn, y, tst):
 
 if __name__ == '__main__':
 
-    trn, y, tst, sub = get_train_test_features2()
+    trn, y, tst, sub = get_train_test_features0()
 
-    config.set_algo_name('lgb2')
-    config.set_feature_name('f2')
+    config.set_algo_name('lgb5')
+    config.set_feature_name('f0')
     p_tst, p_trn_tst, score = train_lgb(trn, y, tst)
 
     submit_result(sub, p_tst, p_trn_tst, score)

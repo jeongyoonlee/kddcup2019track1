@@ -344,8 +344,14 @@ def gen_od_eq_feat(data):
     data['o1-eq-d1'] = (data['o1'] == data['d1']).astype(int)
     data['o2-eq-d2'] = (data['o2'] == data['d2']).astype(int)
     data['o-eq-d'] = data['o1-eq-d1']*data['o2-eq-d2']
-    return data
 
+    data['o1-m-o2'] = np.abs(data['o1'] - data['o2'])
+    data['d1-m-d2'] = np.abs(data['d1'] - data['d2'])
+
+    data['od_area'] = data['o1-m-o2']*data['d1-m-d2']
+    data['od_ratio'] = data['o1-m-o2']/data['d1-m-d2']
+
+    return data
 
 def gen_od_mode_cnt_feat(data):
     feat = pd.read_csv(config.od_mode_cnt_feature_file)
@@ -354,6 +360,62 @@ def gen_od_mode_cnt_feat(data):
     sid = pd.concat((tr_sid, te_sid))
 
     feat = sid.merge(feat, how='left', on=['o','d']).drop(['o','d'], axis=1)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_weekday_hour_cnt_feat(data):
+    feat = pd.read_csv(config.weekday_hour_feature_file)
+    tr_sid = pd.read_csv(config.train_query_file, usecols=['sid','req_time'])
+    te_sid = pd.read_csv(config.test_query_file, usecols=['sid','req_time'])
+    sid = pd.concat((tr_sid, te_sid))
+    sid['req_time'] = pd.to_datetime(sid['req_time'])
+    sid['hour'] = sid['req_time'].map(lambda x: x.hour)
+    sid['weekday'] = sid['req_time'].map(lambda x: x.weekday())
+
+    feat = sid.merge(feat, how='left', on=['hour','weekday']).drop(['hour','weekday','req_time'], axis=1)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_od_plan_agg_feat(data):
+    #feat = pd.read_csv(config.od_plan_agg_feature_file)
+    #tr_sid = pd.read_csv(config.train_query_file, usecols=['sid','o','d','req_time'])
+    #te_sid = pd.read_csv(config.test_query_file, usecols=['sid','o','d', 'req_time'])
+    #sid = pd.concat((tr_sid, te_sid))
+    #sid['req_time'] = pd.to_datetime(sid['req_time'])
+    #sid['hour'] = sid['req_time'].map(lambda x: x.hour)
+
+    #feat = sid.merge(feat, how='left', on=['o','d','hour']).drop(['o','d','hour','req_time'], axis=1)
+    feat = pd.read_csv(config.od_plan_agg_feature_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data   
+
+def gen_mode_feat(data):
+    feat = pd.read_csv(config.mode_feature_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_mode_stats_feat(data):
+    feat = pd.read_csv(config.od_stats_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_daily_plan_feat(data):
+    feat = pd.read_csv(config.daily_plan_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_weather_feat(data):
+    feat = pd.read_csv(config.weather_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_od_pid_count_feat(data):
+    feat = pd.read_csv(config.od_pid_count_file)
+    data = data.merge(feat, how='left', on='sid')
+    return data
+
+def gen_plan_ratio_feat(data):
+    feat = pd.read_csv(config.plan_ratio_file)
     data = data.merge(feat, how='left', on='sid')
     return data
 
@@ -374,25 +436,66 @@ def generate_f1(df):
 
     return trn, tst
 
-
 def generate_f2(df):
-    df = gen_od_feas(df)
-    df = gen_plan_feas(df)
-    df = gen_profile_feas(df)
-    df = gen_ratio_feas(df)
-    df = gen_fly_dist_feas(df)
-    df = gen_aggregate_profile_feas(df) # 0.6759966661470926
-    df = gen_pid_feat(df) # 0.6762996872664375
-    df = gen_od_feat(df) #  without click count: 0.6780576865566392; with click count: 0.6795810670221226
-    df = gen_od_cluster_feat(df) # 0.6796523605372234
-    df = gen_od_eq_feat(df)
-    df = gen_od_mode_cnt_feat(df)
+    trn_feat_name, tst_feat_name = config.get_feature_name('f1')
+    if os.path.exists(trn_feat_name) and os.path.exists(tst_feat_name):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(trn_feat_name)
+        tst = pd.read_csv(tst_feat_name)
+    else:
+        trn, tst = generate_f1(df)
+        trn.to_csv(trn_feat_name, index=False)
+        tst.to_csv(tst_feat_name, index=False)
+
+    
+    df = pd.concat((trn, tst))
+
+    df = gen_od_mode_cnt_feat(df) # [+] fold #0: 0.6835031183515229
+    df = gen_weekday_hour_cnt_feat(df)
+    df = gen_od_plan_agg_feat(df)
+    df = gen_mode_feat(df)
+
+    #df = gen_mode_stats_feat(df)
+    ## df = gen_weather_feat(df)
+    #df = gen_daily_plan_feat(df)
+    #df = gen_od_pid_count_feat(df)
+    ## df = gen_plan_ratio_feat(df)
 
     trn = df[df['click_mode'] != -1]
     tst = df[df['click_mode'] == -1]
 
     return trn, tst
 
+
+def generate_f3(df):
+    trn_feat_name, tst_feat_name = config.get_feature_name('f1')
+    if os.path.exists(trn_feat_name) and os.path.exists(tst_feat_name):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(trn_feat_name)
+        tst = pd.read_csv(tst_feat_name)
+    else:
+        trn, tst = generate_f1(df)
+        trn.to_csv(trn_feat_name, index=False)
+        tst.to_csv(tst_feat_name, index=False)
+
+    
+    df = pd.concat((trn, tst))
+
+    df = gen_od_mode_cnt_feat(df) # [+] fold #0: 0.6835031183515229
+    df = gen_weekday_hour_cnt_feat(df)
+    df = gen_od_plan_agg_feat(df)
+    df = gen_mode_feat(df)
+
+    #df = gen_mode_stats_feat(df)
+    ## df = gen_weather_feat(df)
+    #df = gen_daily_plan_feat(df)
+    #df = gen_od_pid_count_feat(df)
+    ## df = gen_plan_ratio_feat(df)
+
+    trn = df[df['click_mode'] != -1]
+    tst = df[df['click_mode'] == -1]
+
+    return trn, tst
 
 def get_train_test_features():
     config.set_feature_name('f1')
@@ -402,7 +505,7 @@ def get_train_test_features():
         tst = pd.read_csv(config.test_feature_file)
     else:
         df = merge_raw_data()
-        logger.info('generateing feature f1.')
+        logger.info('generating feature f1.')
         trn, tst = generate_f1(df)
 
         logger.info('saving the training and test f1 features.')
@@ -417,7 +520,6 @@ def get_train_test_features():
 
     return trn, y, tst, sub
 
-
 def get_train_test_features2():
     config.set_feature_name('f2')
     if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
@@ -426,10 +528,10 @@ def get_train_test_features2():
         tst = pd.read_csv(config.test_feature_file)
     else:
         df = merge_raw_data()
-        logger.info('generateing feature f2.')
-        trn, tst = generate_f1(df)
+        logger.info('generating feature f2.')
+        trn, tst = generate_f2(df)
 
-        logger.info('saving the training and test f1 features.')
+        logger.info('saving the training and test f2 features.')
         trn.to_csv(config.train_feature_file, index=False)
         tst.to_csv(config.test_feature_file, index=False)
 
@@ -438,6 +540,107 @@ def get_train_test_features2():
 
     trn.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
     tst.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+
+    return trn, y, tst, sub
+
+
+def get_train_test_features2a():
+    config.set_feature_name('f2')
+    if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(config.train_feature_file)
+        tst = pd.read_csv(config.test_feature_file)
+    else:
+        df = merge_raw_data()
+        logger.info('generating feature f2.')
+        trn, tst = generate_f2(df)
+
+        logger.info('saving the training and test f2 features.')
+        trn.to_csv(config.train_feature_file, index=False)
+        tst.to_csv(config.test_feature_file, index=False)
+
+    y = trn['click_mode'].values
+    sub = tst[['sid']].copy()
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/build/feature/od_coord_feature.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/input/data_set_phase1/var_dist_time.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/input/data_set_phase1/var_dist_min.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+    
+    trn.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+    tst.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+
+    return trn, y, tst, sub
+
+def get_train_test_features3():
+    config.set_feature_name('f3')
+    if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(config.train_feature_file)
+        tst = pd.read_csv(config.test_feature_file)
+    else:
+        df = merge_raw_data()
+        logger.info('generateing feature f3.')
+        trn, tst = generate_f3(df)
+
+        logger.info('saving the training and test f3 features.')
+        trn.to_csv(config.train_feature_file, index=False)
+        tst.to_csv(config.test_feature_file, index=False)
+
+    y = trn['click_mode'].values
+    sub = tst[['sid']].copy()
+
+    trn.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+    tst.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+
+    return trn, y, tst, sub
+
+def get_train_test_features4():
+    config.set_feature_name('f4')
+    if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(config.train_feature_file)
+        tst = pd.read_csv(config.test_feature_file)
+    
+    y = trn['click_mode'].values
+    sub = tst[['sid']].copy()
+
+    trn.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+    tst.drop(['sid', 'pid', 'click_mode'], axis=1, inplace=True)
+
+    return trn, y, tst, sub
+
+def get_train_test_features0():
+    config.set_feature_name('f0')
+    if os.path.exists(config.train_feature_file) and os.path.exists(config.test_feature_file):
+        logger.info('loading the training and test features from files.')
+        trn = pd.read_csv(config.train_feature_file)
+        tst = pd.read_csv(config.test_feature_file)
+    
+    y = trn['click_mode'].values
+    sub = tst[['sid']].copy()
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/build/feature/od_coord_feature.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/input/data_set_phase1/var_dist_time.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+
+    feat = pd.read_csv('/home/ubuntu/projects/kddcup2019track1/input/data_set_phase1/var_dist_min.csv')
+    trn = trn.merge(feat, how='left', on='sid')
+    tst = tst.merge(feat, how='left', on='sid')
+
+    trn.drop(['sid', 'click_mode'], axis=1, inplace=True)
+    tst.drop(['sid', 'click_mode'], axis=1, inplace=True)
 
     return trn, y, tst, sub
 

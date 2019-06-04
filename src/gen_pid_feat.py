@@ -1,7 +1,10 @@
 import pandas as pd
 
+from config import logger, config
+import numpy as np
+
 def read_profile_data():
-    profile_data = pd.read_csv('../input/profiles.csv')
+    profile_data = pd.read_csv(config.profile_file)
     profile_na = np.zeros(67)
     profile_na[0] = -1
     profile_na = pd.DataFrame(profile_na.reshape(1, -1))
@@ -11,12 +14,12 @@ def read_profile_data():
 
 
 def merge_raw_data():
-    tr_queries = pd.read_csv('../input/train_queries.csv')
-    te_queries = pd.read_csv('../input/test_queries.csv')
-    tr_plans = pd.read_csv('../input/train_plans.csv')
-    te_plans = pd.read_csv('../input/test_plans.csv')
+    tr_queries = pd.read_csv(config.train_query_file)
+    te_queries = pd.read_csv(config.test_query_file)
+    tr_plans = pd.read_csv(config.train_plan_file)
+    te_plans = pd.read_csv(config.test_plan_file)
 
-    tr_click = pd.read_csv('../input/train_clicks.csv')
+    tr_click = pd.read_csv(config.train_click_file)
 
     tr_data = tr_queries.merge(tr_click, on='sid', how='left')
     tr_data = tr_data.merge(tr_plans, on='sid', how='left')
@@ -33,12 +36,13 @@ def merge_raw_data():
     print('raw data columns: {}'.format(', '.join(data.columns)))
     return data
 
-
 if __name__ == "__main__":
     data = merge_raw_data()
     data['req_time'] = data['req_time'].map(lambda x: pd.to_datetime(x))
     data['day'] = data['req_time'].map(lambda x: x.day)
     data['hour'] = data['req_time'].map(lambda x: x.hour)
+
+    print(data.columns.tolist())
     
     feat = data.groupby('pid')['hour'].nunique().to_frame(name='pid_nunique_hour').reset_index()
     feat = feat.merge(data.groupby('pid')['day'].nunique().to_frame(name='pid_nunique_day').reset_index(), how='left', on='pid')
@@ -46,6 +50,6 @@ if __name__ == "__main__":
     feat = feat.merge(data.groupby('pid')['o'].nunique().to_frame(name='pid_nunique_o').reset_index(), how='left', on='pid')
     feat = feat.merge(data.groupby('pid')['d'].nunique().to_frame(name='pid_nunique_d').reset_index(), how='left', on='pid')
     feat['nunique_o-d-nunique_d'] = feat['pid_nunique_o'] / feat['pid_nunique_d']
-    feat.to_csv('../feat/pid_feat.csv', index=False)
+    feat.to_csv(config.pid_feature_file, index=False)
     
     

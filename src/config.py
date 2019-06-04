@@ -22,7 +22,7 @@ class Config(object):
     def __init__(self,
                  data_dir=os.path.join(root_dir, 'input'),
                  build_dir=os.path.join(root_dir, 'build'),
-                 phase=1,
+                 phase=2,
                  seed=2019,
                  n_fold=5,
                  n_class=12):
@@ -64,10 +64,21 @@ class Config(object):
 
         # Common feature files
         self.plan_file = os.path.join(self.feature_dir, 'plans.csv')
+        self.od_node_feature_file = os.path.join(self.feature_dir, 'od_node_features.csv')
         self.pid_feature_file = os.path.join(self.feature_dir, 'pid_features.csv')
         self.od_feature_file = os.path.join(self.feature_dir, 'od_features.csv')
         self.od_cluster_feature_file = os.path.join(self.feature_dir, 'od_cluster_features.csv')
         self.od_mode_cnt_feature_file = os.path.join(self.feature_dir, 'od_mode_cnt_features.csv')
+        self.weekday_hour_feature_file = os.path.join(self.feature_dir, 'weekday_hour_cnt.csv')
+        self.od_plan_agg_feature_file = os.path.join(self.feature_dir, 'first_plan_features.csv')
+        self.mode_feature_file = os.path.join(self.feature_dir, 'sid_plan_mode_features.csv')
+        self.od_stats_file = os.path.join(self.feature_dir, 'od_mode_stats.csv')
+        self.weather_file = os.path.join(self.feature_dir, 'weather_features.csv')
+        self.daily_plan_file = os.path.join(self.feature_dir, 'daily_plan_features.csv')
+        self.od_pid_count_file = os.path.join(self.feature_dir, 'od_pid_count.csv')
+        self.plan_ratio_file = os.path.join(self.feature_dir, 'plan_ratio.csv')
+        self.od_coord_feature_file = os.path.join(self.feature_dir, 'od_coord_feature.csv')
+
         
 
         #----------------------------------------------------------------------
@@ -86,6 +97,9 @@ class Config(object):
         self.train_feature_file = os.path.join(self.feature_dir, '{}.trn.csv'.format(self.feature_name))
         self.test_feature_file = os.path.join(self.feature_dir, '{}.tst.csv'.format(self.feature_name))
 
+    def get_feature_name(self, feature_name):
+        return os.path.join(self.feature_dir, '{}.trn.csv'.format(feature_name)), os.path.join(self.feature_dir, '{}.tst.csv'.format(feature_name))
+
     def set_algo_name(self, algo_name):
         assert self.feature_name
 
@@ -96,8 +110,10 @@ class Config(object):
         self.predict_val_file = os.path.join(self.val_dir, '{}.val.csv'.format(self.model_name))
         self.predict_tst_file = os.path.join(self.tst_dir, '{}.tst.csv'.format(self.model_name))
         self.predict_trn_tst_file = os.path.join(self.tst_dir, '{}.trn_tst.csv'.format(self.model_name))
+        self.predict_trn_tst_bag_file = os.path.join(self.tst_dir, '{}.trn_tst.bag.csv'.format(self.model_name))
         self.submission_file = os.path.join(self.sub_dir, '{}.sub.csv'.format(self.model_name))
         self.trn_submission_file = os.path.join(self.sub_dir, '{}.trn.sub.csv'.format(self.model_name))
+        self.trn_bag_submission_file = os.path.join(self.sub_dir, '{}.trn.bag.sub.csv'.format(self.model_name))
 
 
 
